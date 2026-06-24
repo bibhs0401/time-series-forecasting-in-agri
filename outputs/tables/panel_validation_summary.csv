@@ -1,0 +1,2 @@
+n_weeks,n_crops,date_min,date_max,annual_cycles,n_missing_dates,zero_gate,value_min,value_max,duplicate_columns,n_sparse,n_pass,sparse_crops
+523,49,2015-12-27,2025-12-28,10.1,0,0.2,0.0,100.0,,6,43,"Citrus × Tangerina, Carrot, Mint, Maize, Broccoli, Radish"

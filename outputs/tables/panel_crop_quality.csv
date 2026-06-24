@@ -1,0 +1,50 @@
+crop,zero_frac,sparse,passes_gate
+Citrus × Tangerina,0.9082217973231358,True,False
+Carrot,0.7304015296367112,True,False
+Mint,0.45124282982791586,True,False
+Maize,0.30019120458891013,True,False
+Broccoli,0.2638623326959847,True,False
+Radish,0.2084130019120459,True,False
+Blackberry,0.18164435946462715,False,True
+Chayote,0.05162523900573614,False,True
+Plum,0.0497131931166348,False,True
+Carambola,0.0497131931166348,False,True
+Watermelon,0.0,False,True
+Blueberry,0.0,False,True
+Tomato,0.0,False,True
+Potato,0.0,False,True
+Lime,0.0,False,True
+Cucumber,0.0,False,True
+Strawberry,0.0,False,True
+Grape,0.0,False,True
+Lemon,0.0,False,True
+Pumpkin,0.0,False,True
+Avocado,0.0,False,True
+Peanut,0.0,False,True
+Papaya,0.0,False,True
+Pineapple,0.0,False,True
+Guava,0.0,False,True
+Cabbage,0.0,False,True
+Bell Pepper,0.0,False,True
+Grapefruit,0.0,False,True
+Lettuce,0.0,False,True
+Sweet Potato,0.0,False,True
+Citrus Fruit,0.0,False,True
+Celery,0.0,False,True
+Peach,0.0,False,True
+Sugarcane,0.0,False,True
+Okra,0.0,False,True
+Zucchini,0.0,False,True
+Eggplant,0.0,False,True
+Pecan,0.0,False,True
+Chestnut,0.0,False,True
+Coriander,0.0,False,True
+Coconut,0.0,False,True
+Parsley,0.0,False,True
+Rosemary,0.0,False,True
+Onion,0.0,False,True
+Basil,0.0,False,True
+Garlic,0.0,False,True
+Spinach,0.0,False,True
+Banana,0.0,False,True
+Cauliflower,0.0,False,True
