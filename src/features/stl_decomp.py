@@ -1,11 +1,11 @@
-"""stl_decomp.py
-STL (Seasonal-Trend decomposition using Loess) remainder extraction.
+"""Extract STL remainders for crop time series and related helpers.
 
-The STL REMAINDER, not the raw series, feeds graph edge construction
-Removing trend + seasonal components prevents spurious edges that simply
-reflect shared seasonality rather than direct conditional dependence.
+We use the STL *remainder* (not the raw series) when we build graph edges.
+By stripping out the long-term trend and the seasonal pattern first, edges
+are less likely to reflect simple shared seasonality instead of a real link
+between two crops.
 
-stl remainder computed on training slice only.
+All decompositions here are intended to run on the training slice only.
 """
 
 import sys
@@ -25,22 +25,11 @@ def compute_stl_remainders(panel: pd.DataFrame,
                            period: int = PERIOD,
                            robust: bool = True,
                            min_length: int = 104) -> pd.DataFrame:
-    """Extract STL remainders for every crop in the training panel.
+    """Compute STL remainders for every crop in the training panel.
 
-    Parameters
-    ----------
-    panel      : DataFrame (T, N), training slice only; NO test data.
-    period     : seasonal period in weeks (default 52 = annual).
-    robust     : use LOWESS robustness iterations (recommended for Trends data
-                 which has occasional spikes).
-    min_length : minimum non-NaN observations required; shorter series get
-                 NaN remainders with a warning.
-
-    Returns
-    -------
-    DataFrame (T, N) of STL remainders, same index as panel.
-    Crops that fail decomposition return a NaN column — these should be
-    excluded from edge construction for that fold.
+    `panel` should contain training data only. Short series (fewer than
+    `min_length` non-missing points) or failed fits return all-NaN columns
+    and should be skipped when building edges.
     """
     remainders = {}
 
@@ -70,10 +59,10 @@ def compute_stl_remainders(panel: pd.DataFrame,
 
 
 def z_normalize_remainders(remainders: pd.DataFrame) -> pd.DataFrame:
-    """Z-normalise each crop's remainder (zero mean, unit variance).
+    """Standardize each crop's remainder to zero mean and unit variance.
 
-    Must be called on the training remainder only; apply the same
-    (mean, std) to the held-out portion if needed.
+    Call this on the training remainders; reuse the same mean and std for
+    any held-out data.
     """
     means = remainders.mean()
     stds  = remainders.std().replace(0, 1)   # avoid divide-by-zero
@@ -83,10 +72,9 @@ def z_normalize_remainders(remainders: pd.DataFrame) -> pd.DataFrame:
 def stl_components(series: pd.Series,
                    period: int = PERIOD,
                    robust: bool = True) -> pd.DataFrame:
-    """Return full STL decomposition for a single crop series.
+    """Return the full STL decomposition for one crop time series.
 
-    Returns DataFrame with columns
-    [observed, trend, seasonal, resid].
+    The result has columns: observed, trend, seasonal, and resid.
     """
     stl = STL(series.dropna(), period=period, robust=robust)
     fit = stl.fit()

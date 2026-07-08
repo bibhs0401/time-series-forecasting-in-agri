@@ -1,15 +1,17 @@
-"""calendar_features.py
-Fourier seasonality terms + per-crop FL in/out-of-season binary flags.
+"""Calendar-based features: seasonality curves and in-season flags for FL crops.
 
-FL crop calendar sources:
+This module builds:
+  - smooth Fourier seasonality terms, and
+  - simple "in season / out of season" binary flags for each crop.
+
+The Florida crop calendars are based on:
   [N] USDA NASS FL Statistical Bulletin 2024, Table E-7
   [F] FDACS / Fresh from Florida Seasonal Availability Calendar 2023
   [U] UF/IFAS Miami-Dade -- Tropical Fruit Seasons in Florida
   [P] Pickyourown.org Florida Harvest Calendar
 
-Peak-season windows are (start_iso_week, end_iso_week), 1-52.
-start > end means the window wraps across the new year.
-ISO is the ISO 8601 week date format.
+Peak-season windows use ISO week numbers (1–52) as (start_week, end_week).
+If start_week > end_week, the window wraps across the new year.
 """
 
 import numpy as np
@@ -77,7 +79,11 @@ FL_SEASON = {
 
 
 def make_fourier_features(index, period=PERIOD, n_harmonics=N_HARMONICS):
-    """sin/cos Fourier terms k=1..n_harmonics.  Shape: (T, 2*n_harmonics)."""
+    """Create sine/cosine seasonality features for the given time index.
+
+    Returns sin/cos terms for harmonics 1..`n_harmonics`, with shape
+    (T, 2 * n_harmonics).
+    """
     t = np.arange(len(index))
     cols = {}
     for k in range(1, n_harmonics + 1):
@@ -87,22 +93,25 @@ def make_fourier_features(index, period=PERIOD, n_harmonics=N_HARMONICS):
 
 
 def _week_of_year(index):
-    """ISO week number clipped to 1-52."""
+    """Return the ISO week number for each date, clipped to 1–52."""
     return np.clip(index.isocalendar().week.to_numpy(dtype=int), 1, 52)
 
 
 def _in_season_mask(week, start, end):
-    """Binary mask; handles wrap-around (start > end)."""
+    """Return a 0/1 mask for weeks that fall inside a season window.
+
+    Handles seasons that wrap over the new year (start > end).
+    """
     if start <= end:
         return ((week >= start) & (week <= end)).astype(float)
     return ((week >= start) | (week <= end)).astype(float)
 
 
 def make_season_flags(index, crops, calendar=None):
-    """Return one binary column per crop: 1 = within peak FL season.
+    """Build one binary 'in-season' column per crop for Florida.
 
-    Column names: {crop}_in_season.
-    Crops absent from the calendar default to 1.0 (always in season).
+    Column names follow the pattern `{crop}_in_season`. If a crop does not
+    appear in the calendar, it is treated as always in season (all ones).
     """
     if calendar is None:
         calendar = FL_SEASON
