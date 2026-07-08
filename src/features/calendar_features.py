@@ -9,6 +9,7 @@ FL crop calendar sources:
 
 Peak-season windows are (start_iso_week, end_iso_week), 1-52.
 start > end means the window wraps across the new year.
+ISO is the ISO 8601 week date format.
 """
 
 import numpy as np

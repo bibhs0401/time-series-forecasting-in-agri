@@ -1,13 +1,11 @@
 """stl_decomp.py
 STL (Seasonal-Trend decomposition using Loess) remainder extraction.
 
-The STL REMAINDER — not the raw series — feeds graph edge construction
-(Phase 4: graphical lasso, lagged cross-correlation, transfer entropy).
+The STL REMAINDER, not the raw series, feeds graph edge construction
 Removing trend + seasonal components prevents spurious edges that simply
 reflect shared seasonality rather than direct conditional dependence.
 
-IMPORTANT: always call compute_stl_remainders() on the TRAINING SLICE
-of each rolling-origin fold.  Never fit on the full sample.
+stl remainder computed on training slice only.
 """
 
 import sys
@@ -23,7 +21,6 @@ import config
 
 PERIOD = 52   # annual cycle in weeks
 
-
 def compute_stl_remainders(panel: pd.DataFrame,
                            period: int = PERIOD,
                            robust: bool = True,
@@ -32,7 +29,7 @@ def compute_stl_remainders(panel: pd.DataFrame,
 
     Parameters
     ----------
-    panel      : DataFrame (T, N), training slice only — NO test data.
+    panel      : DataFrame (T, N), training slice only; NO test data.
     period     : seasonal period in weeks (default 52 = annual).
     robust     : use LOWESS robustness iterations (recommended for Trends data
                  which has occasional spikes).
@@ -75,10 +72,6 @@ def compute_stl_remainders(panel: pd.DataFrame,
 def z_normalize_remainders(remainders: pd.DataFrame) -> pd.DataFrame:
     """Z-normalise each crop's remainder (zero mean, unit variance).
 
-    Apply this AFTER compute_stl_remainders() and BEFORE passing residuals
-    to graphical lasso / cross-correlation / transfer entropy so that
-    high-variance crops don't dominate edge weights.
-
     Must be called on the training remainder only; apply the same
     (mean, std) to the held-out portion if needed.
     """
@@ -92,7 +85,7 @@ def stl_components(series: pd.Series,
                    robust: bool = True) -> pd.DataFrame:
     """Return full STL decomposition for a single crop series.
 
-    Useful for EDA and paper figures.  Returns DataFrame with columns
+    Returns DataFrame with columns
     [observed, trend, seasonal, resid].
     """
     stl = STL(series.dropna(), period=period, robust=robust)
@@ -112,7 +105,7 @@ if __name__ == "__main__":
     crops = pd.read_csv(config.PANEL_DIR / "crop_list.csv")["crop"].tolist()
     panel = panel[crops]
 
-    print("Computing STL remainders on full panel (demo only — use train fold in practice)…")
+    print("Computing STL remainders on train fold")
     R = compute_stl_remainders(panel)
     Rz = z_normalize_remainders(R)
     print(f"Remainder shape:            {R.shape}")

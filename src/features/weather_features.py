@@ -1,17 +1,12 @@
 """weather_features.py
 NOAA Climate Data Online — Florida statewide weekly weather features.
 
-One-time bulk download; results cached to outputs/panel/noaa_weather_fl.csv.
-Delete the cache file to force a re-download.
-
-Variables downloaded (daily, station-averaged across FL)
--------------------------------------------------------
+Variables downloaded (daily, station-averaged across FL):
   TMAX  — daily max temperature (°F)
   TMIN  — daily min temperature (°F)
   PRCP  — daily precipitation (NOAA "standard" units = inches, converted to mm)
 
 Weekly panel columns (resampled W-SUN)
---------------------------------------
 LEVEL group (smooth, seasonal — partly redundant with Fourier/season flags):
   TMAX, TMIN  — weekly mean (°F)
   TAVG        — weekly mean of (TMAX+TMIN)/2 (°F)
@@ -26,7 +21,7 @@ SHOCK group (event counts — the news-driven, search-relevant signal):
   rain_days   — # days PRCP >= 1 mm  (wet-spell frequency)
   chill_days  — # days 32°F <= TAVG <= 45°F  (chill accumulation: peach/blueberry)
 
-ANOMALY group (computed separately, leakage-safe — see add_weather_anomalies):
+ANOMALY group (computed separately, leakage-safe):
   {var}_anom  — z-score vs week-of-year climatology FIT ON TRAIN FOLD ONLY.
                 This is the non-redundant signal: departure from the normal
                 seasonal cycle already captured by the calendar features.
@@ -35,7 +30,7 @@ Aggregation
 -----------
 Daily station readings are averaged across all FL GHCND stations
 (locationid="FIPS:12") then resampled to weekly (W-SUN). Means for levels,
-sums for totals/counts, max for PRCP_max.
+sums for totals/counts, max for PRCP_max
 """
 
 import os
