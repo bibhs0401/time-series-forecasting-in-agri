@@ -61,11 +61,16 @@ def a0_integrity(anomalies: list) -> pd.DataFrame:
     is trusted, so this is a hard gate, not just a metric.
     """
     _hr("A0 — Seam integrity (empty / un-scaled windows)")
-    df = pd.DataFrame(anomalies)
+    cols = ["group", "seam", "type", "n_overlap"]
+    df = pd.DataFrame(anomalies, columns=cols)
+    # Always (re)write so the on-disk table reflects the latest run, even when
+    # the gate passes. Otherwise a stale failure table from an earlier run would
+    # linger after the underlying raw data is fixed.
+    df.to_csv(config.TABLES_DIR / "a0_seam_integrity.csv", index=False)
     if df.empty:
         print("  ✓ No empty windows or un-scaled joins. All seams calibrated.")
+        print("  → wrote a0_seam_integrity.csv (no problems)")
         return df
-    df.to_csv(config.TABLES_DIR / "a0_seam_integrity.csv", index=False)
     print(f"  ✗ {len(df)} integrity problem(s) found — FIX BEFORE MODELING:")
     for _, r in df.iterrows():
         if r["type"] == "empty_window":

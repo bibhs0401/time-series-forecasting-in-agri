@@ -1,60 +1,28 @@
-#!/usr/bin/env python3
-"""
-stitch_panel.py
-===============
-Produce one common-scale weekly panel (2016-2025) for all Florida crops
-from the manually-downloaded Google Trends CSVs in data/g1 … g12.
+'''Build a common-scale weekly Google Trends panel for Florida crops.
 
-STITCHING LOGIC (three phases)
-───────────────────────────────
-╔══════════════════════════════════════════════════════════════════════════╗
-║  PHASE 1 — Within-group stitching                                       ║
-║                                                                          ║
-║  Each group has 19 half-year windows that overlap by ~26-28 weeks.       ║
-║  Google Trends rescales each pull to 0-100 independently, so p02 is on   ║
-║  a different absolute scale than p01 even though they share 6 months.    ║
-║                                                                          ║
-║  Fix: ratio-of-means over the shared weeks.                              ║
-║                                                                          ║
-║  p01:  Jan 2016 ──────────────────── Dec 2016                            ║
-║  p02:              Jul 2016 ──────────────────── Jun 2017                ║
-║                    ↑────────────────↑                                    ║
-║                     overlap (~26 wk)                                     ║
-║                                                                          ║
-║  For each join p_(i) → p_(i+1):                                          ║
-║    1. Find the overlap date range.                                        ║
-║    2. Compute scale factor = mean(running_panel[overlap]) /              ║
-║                              mean(p_(i+1)[overlap])                      ║
-║       pooled across ALL crops in the window for robustness.              ║
-║    3. Multiply all of p_(i+1) by that factor.                            ║
-║    4. Append only the new (non-overlapping) tail of p_(i+1).             ║
-║       The earlier window always wins on shared dates.                    ║
-║                                                                          ║
-║  Result after Phase 1: one ~520-week series per crop per group.          ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║  PHASE 2 — Cross-group rescaling                                         ║
-║                                                                          ║
-║  The groups were pulled in separate Trends queries, so they live on      ║
-║  different absolute scales even after within-group stitching.            ║
-║                                                                          ║
-║  Cucumber is the primary anchor (present in every group). For each        ║
-║  non-reference group, compute one scale factor per anchor crop, then      ║
-║  average those factors and multiply every column in the group by it.      ║
-║  All groups are then on the reference (g1) absolute scale.               ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║  PHASE 3 — Deduplication and final assembly                              ║
-║                                                                          ║
-║  Bridge crops appear in more than one group (cucumber, tomato, lime,     ║
-║  cabbage, peach). After cross-scaling they should agree numerically, so  ║
-║  we keep each crop from the first group it appears in and drop later      ║
-║  copies. The panel is renormalized to [0, 100], then written to CSV.     ║
-╚══════════════════════════════════════════════════════════════════════════╝
+The raw data is split across groups ``g1`` through ``g15``. Each group
+contains 19 one-year downloads that begin six months apart, so neighbouring
+downloads share roughly 26 weeks. Because Google Trends normalizes every
+download independently to a 0-100 scale, the files cannot simply be joined
+together.
 
-Run:
-    python -m src.data.stitch_panel
-    # or
-    python src/data/stitch_panel.py
-"""
+The panel is assembled in three steps:
+
+1. Stitch the 19 windows within each group. For each neighbouring pair, use
+   their shared weeks and crops to estimate a scale factor, rescale the newer
+   window, and append only its new dates. The earlier window is retained for
+   dates that occur in both files.
+2. Put all groups on the scale of the reference group, ``g1``. Cucumber and
+   strawberry occur in every group and serve as bridge crops. Their
+   anchor-specific scale factors are averaged before the other crops in the
+   group are rescaled.
+3. Combine the groups into one panel. Repeated bridge crops are kept from
+   their first group only, and the completed panel is normalized so its
+   overall maximum is 100.
+
+Run this module with ``python -m src.data.stitch_panel``. It can also be run
+directly with ``python src/data/stitch_panel.py``.
+'''
 
 import sys
 from pathlib import Path
@@ -80,9 +48,7 @@ from src.utils.io import load_group_windows, write_panel
 ESTIMATORS = ("ratio_of_means", "median_of_ratios")
 
 
-# ═══════════════════════════════════════════════════════════════════
 #  Phase 1: within-group stitching
-# ═══════════════════════════════════════════════════════════════════
 
 def _scale_factor(panel_overlap: np.ndarray,
                   incoming_overlap: np.ndarray,
@@ -234,9 +200,7 @@ def stitch_windows(windows: list,
     return result.sort_index()
 
 
-# ═══════════════════════════════════════════════════════════════════
 #  Phase 2: cross-group rescaling
-# ═══════════════════════════════════════════════════════════════════
 
 def per_anchor_factors(ref_panel: pd.DataFrame,
                        other_panel: pd.DataFrame,
@@ -282,10 +246,6 @@ def anchor_scale_factor(ref_panel: pd.DataFrame,
         print(f"    → averaged factor:  ×{mean_f:.4f}")
     return mean_f
 
-
-# ═══════════════════════════════════════════════════════════════════
-#  Reusable pipeline (phase 1 → 2 → 3)
-# ═══════════════════════════════════════════════════════════════════
 
 def stitch_all_groups(estimator: str = "ratio_of_means",
                       seam_records: list = None,
@@ -365,9 +325,7 @@ def build_panel(estimator: str = "ratio_of_means",
     return assemble_panel(scaled, renormalize, title_case, verbose)
 
 
-# ═══════════════════════════════════════════════════════════════════
 #  Main
-# ═══════════════════════════════════════════════════════════════════
 
 def main():
     print("\n" + "═" * 62)

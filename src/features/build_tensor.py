@@ -2,7 +2,6 @@
 Assemble the multi-view node feature tensor X[node, time, channel].
 
 Feature channel groups
-----------------------
   G0  target_lags   — Trends value (t) + lags {1,2,4,8,13,26,52}   shape (N, T, 8)
   G1  fourier       — sin/cos k=1..4 (shared, broadcast)            shape (N, T, 8)
   G2  season_flag   — per-crop in/out-of-season binary               shape (N, T, 1)
@@ -13,7 +12,6 @@ Wikipedia pageviews are NOT a feature channel.  They live in
 src/data/wiki_corroboration.py as a panel validation tool (Gate A.4).
 
 Leakage rules
--------------
   • All scalers/normalisation must be fit on the training slice only
     and applied to both train and test.
   • Fourier terms and season flags are calendar-derived — no fitting needed.
@@ -23,7 +21,6 @@ Leakage rules
     panel_train and weather_train; then apply_scalers() to the test slice.
 
 Ablation
---------
 Pass include=["G0","G1","G2"] to concat_groups() to toggle off groups.
 This is how the feature-group ablation in Phase 6 works.
 """
@@ -48,7 +45,7 @@ from src.features.static_attributes import get_attribute_matrix
 ALL_GROUPS = ["G0", "G1", "G2", "G3", "G4"]
 
 
-# ─── Per-crop RobustScaler for G0 (Trends values + lags) ─────────────────────
+# Per-crop RobustScaler for G0 (Trends values + lags) 
 
 def fit_crop_scalers(panel_train: pd.DataFrame) -> dict:
     """Fit one RobustScaler per crop on the training slice.

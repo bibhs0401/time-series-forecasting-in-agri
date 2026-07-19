@@ -6,8 +6,7 @@ Used by:
 
 Attribute table: src/data/static_attributes.csv
 
-Columns
--------
+Columns:
   family        : botanical / commodity family (string)
   season_class  : 'cool', 'warm', 'year_round'
   perishability : 'high', 'medium', 'low'

@@ -15,15 +15,13 @@ def make_lag_features(panel: pd.DataFrame,
                       lags: list = LAGS) -> pd.DataFrame:
     """Build causal lag columns for every crop.
 
-    Parameters
-    ----------
+    Parameters:
     panel : DataFrame, shape (T, N)
         Date-indexed Trends panel; columns = crop names.
     lags  : list of int
         Week offsets.  Default = LAGS.
 
-    Returns
-    -------
+    Returns:
     DataFrame, shape (T, N * len(lags))
         Columns named  {crop}_lag{k}.
         First max(lags) rows will be NaN — handle downstream.
