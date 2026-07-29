@@ -1,0 +1,24 @@
+pandas
+numpy
+scikit-learn
+statsmodels
+requests
+
+# Graph visualization (src/graph/visualize_graph.py).
+matplotlib
+networkx
+
+# Enables the semantic embedding graph layer A_sem (src/graph/adjacency_static.py).
+sentence-transformers
+
+# Optional: enables transfer-entropy graph layer A_te.
+pyif
+
+# ST-GNN forecasters (src/models/gnn.py, src/train/trainer.py). CPU is fine at
+# N=43 nodes. For a CPU-only build (much smaller download) install with:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Baselines, metrics, and CV do NOT require torch.
+torch
+
+# Dev: test suite (tests/)
+pytest
