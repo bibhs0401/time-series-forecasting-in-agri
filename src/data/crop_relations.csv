@@ -1,0 +1,98 @@
+crop_i,crop_j,relation,weight,rationale
+# taxon: same botanical family
+Lime,Lemon,taxon,1.0,Rutaceae citrus
+Lime,Grapefruit,taxon,1.0,Rutaceae citrus
+Lime,Citrus Fruit,taxon,1.0,Rutaceae citrus
+Lemon,Grapefruit,taxon,1.0,Rutaceae citrus
+Lemon,Citrus Fruit,taxon,1.0,Rutaceae citrus
+Grapefruit,Citrus Fruit,taxon,1.0,Rutaceae citrus
+Cucumber,Watermelon,taxon,1.0,Cucurbitaceae
+Cucumber,Pumpkin,taxon,1.0,Cucurbitaceae
+Cucumber,Zucchini,taxon,1.0,Cucurbitaceae
+Cucumber,Chayote,taxon,1.0,Cucurbitaceae
+Watermelon,Pumpkin,taxon,1.0,Cucurbitaceae
+Watermelon,Zucchini,taxon,1.0,Cucurbitaceae
+Watermelon,Chayote,taxon,1.0,Cucurbitaceae
+Pumpkin,Zucchini,taxon,1.0,Cucurbitaceae
+Pumpkin,Chayote,taxon,1.0,Cucurbitaceae
+Zucchini,Chayote,taxon,1.0,Cucurbitaceae
+Potato,Bell Pepper,taxon,1.0,Solanaceae nightshade
+Potato,Tomato,taxon,1.0,Solanaceae nightshade
+Potato,Eggplant,taxon,1.0,Solanaceae nightshade
+Bell Pepper,Tomato,taxon,1.0,Solanaceae nightshade
+Bell Pepper,Eggplant,taxon,1.0,Solanaceae nightshade
+Tomato,Eggplant,taxon,1.0,Solanaceae nightshade
+Cabbage,Cauliflower,taxon,1.0,Brassicaceae
+Strawberry,Blackberry,taxon,1.0,Rosaceae
+Strawberry,Peach,taxon,1.0,Rosaceae
+Strawberry,Plum,taxon,1.0,Rosaceae
+Blackberry,Peach,taxon,1.0,Rosaceae
+Blackberry,Plum,taxon,1.0,Rosaceae
+Peach,Plum,taxon,1.0,Rosaceae Prunus stone fruit
+Carrot,Celery,taxon,1.0,Apiaceae
+Carrot,Coriander,taxon,1.0,Apiaceae
+Carrot,Parsley,taxon,1.0,Apiaceae
+Celery,Coriander,taxon,1.0,Apiaceae
+Celery,Parsley,taxon,1.0,Apiaceae
+Coriander,Parsley,taxon,1.0,Apiaceae
+Rosemary,Basil,taxon,1.0,Lamiaceae
+Onion,Garlic,taxon,1.0,Amaryllidaceae allium
+Corn,Sugarcane,taxon,1.0,Poaceae grass
+# subst: search / culinary substitutes
+Lime,Lemon,subst,0.9,Interchangeable acid citrus
+Lemon,Grapefruit,subst,0.4,Citrus swap
+Grapefruit,Citrus Fruit,subst,0.6,Generic citrus
+Blackberry,Blueberry,subst,0.7,Berry swap
+Blueberry,Strawberry,subst,0.6,Berry swap
+Blackberry,Strawberry,subst,0.5,Berry swap
+Peach,Plum,subst,0.7,Stone fruit swap
+Zucchini,Cucumber,subst,0.6,Similar form and use
+Zucchini,Eggplant,subst,0.4,Grilled veg swap
+Cabbage,Lettuce,subst,0.5,Leafy swap
+Cauliflower,Cabbage,subst,0.5,Brassica swap
+Spinach,Lettuce,subst,0.5,Salad greens swap
+Basil,Parsley,subst,0.4,Fresh herb swap
+Basil,Coriander,subst,0.4,Fresh herb swap
+Parsley,Coriander,subst,0.5,Fresh herb swap
+Rosemary,Basil,subst,0.3,Herb swap
+Mango,Pineapple,subst,0.4,Tropical fruit swap
+Grape,Blueberry,subst,0.3,Snack fruit swap
+Grape,Strawberry,subst,0.3,Snack fruit swap
+Walnut,Peanut,subst,0.4,Nut swap in baking and salads
+# compl: recipe / co-search complements (used together)
+Tomato,Basil,compl,0.9,Caprese pasta
+Tomato,Cucumber,compl,0.7,Salad
+Tomato,Onion,compl,0.6,Cooking base
+Tomato,Garlic,compl,0.6,Cooking base
+Tomato,Bell Pepper,compl,0.5,Sofrito
+Tomato,Lettuce,compl,0.7,Salad sandwich
+Tomato,Avocado,compl,0.5,Salad guacamole
+Onion,Garlic,compl,0.8,Aromatic base
+Onion,Bell Pepper,compl,0.6,Sofrito fajita
+Onion,Potato,compl,0.5,Roast hash
+Carrot,Celery,compl,0.7,Mirepoix
+Carrot,Onion,compl,0.6,Mirepoix
+Celery,Onion,compl,0.6,Mirepoix
+Lettuce,Cucumber,compl,0.7,Salad
+Avocado,Lime,compl,0.7,Guacamole
+Avocado,Coriander,compl,0.5,Guacamole
+Coriander,Lime,compl,0.6,Salsa guacamole
+Garlic,Basil,compl,0.4,Pesto sauce
+Garlic,Parsley,compl,0.4,Gremolata
+Garlic,Lemon,compl,0.4,Roast chicken
+Garlic,Spinach,compl,0.4,Sauteed greens
+Rosemary,Potato,compl,0.5,Roast potato
+Coconut,Lime,compl,0.4,Thai dessert
+Corn,Bell Pepper,compl,0.4,Salsa saute
+Pineapple,Coconut,compl,0.5,Tropical dessert pairing
+Pineapple,Mango,compl,0.5,Tropical fruit salad
+Mango,Lime,compl,0.6,Mango-lime salsa
+Mango,Coriander,compl,0.5,Mango salsa
+Mango,Avocado,compl,0.5,Tropical salad and salsa
+Peanut,Celery,compl,0.3,Ants-on-a-log snack pairing
+Okra,Tomato,compl,0.6,Gumbo and stew base
+Okra,Onion,compl,0.5,Gumbo and stew base
+Okra,Bell Pepper,compl,0.4,Gumbo and succotash-style dishes
+Okra,Corn,compl,0.4,Southern succotash-style dish
+Walnut,Celery,compl,0.4,Waldorf salad
+Walnut,Spinach,compl,0.4,Walnut-spinach salad

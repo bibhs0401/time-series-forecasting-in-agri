@@ -1,18 +1,18 @@
-"""Calendar-based features: seasonality curves and in-season flags for FL crops.
+'''Calendar features: Fourier seasonality and Florida in-season flags.
 
 This module builds:
   - smooth Fourier seasonality terms, and
-  - simple "in season / out of season" binary flags for each crop.
+  - a binary in-season / out-of-season flag per crop.
 
-The Florida crop calendars are based on:
+Florida crop calendars are based on:
   [N] USDA NASS FL Statistical Bulletin 2024, Table E-7
   [F] FDACS / Fresh from Florida Seasonal Availability Calendar 2023
-  [U] UF/IFAS Miami-Dade -- Tropical Fruit Seasons in Florida
+  [U] UF/IFAS Miami-Dade Tropical Fruit Seasons in Florida
   [P] Pickyourown.org Florida Harvest Calendar
 
-Peak-season windows use ISO week numbers (1–52) as (start_week, end_week).
+Peak-season windows use ISO week numbers (1-52) as (start_week, end_week).
 If start_week > end_week, the window wraps across the new year.
-"""
+'''
 
 import numpy as np
 import pandas as pd
@@ -22,97 +22,101 @@ N_HARMONICS = 4
 
 FL_SEASON = {
     # Berries
-    "Strawberry":    (44, 17),  # Nov->Apr [N][F]
-    "Blueberry":     (14, 26),  # Apr->Jun [N][F]
-    "Blackberry":    (14, 21),  # Apr->May [P]
+    'Strawberry':    (44, 17),  # Nov->Apr [N][F]
+    'Blueberry':     (14, 26),  # Apr->Jun [N][F]
+    'Blackberry':    (14, 21),  # Apr->May [P]
     # Cucurbits
-    "Watermelon":    (14, 35),  # Apr->Aug [N][F]
-    "Cucumber":      (40, 21),  # Oct->May [N] two-season
-    "Zucchini":      (40, 26),  # Oct->Jun [N]
-    "Pumpkin":       (40,  4),  # Oct->Jan [P]
-    "Chayote":       (31, 52),  # Aug->Dec [U]
+    'Watermelon':    (14, 35),  # Apr->Aug [N][F]
+    'Cucumber':      (40, 21),  # Oct->May [N] two-season
+    'Zucchini':      (40, 26),  # Oct->Jun [N]
+    'Pumpkin':       (40,  4),  # Oct->Jan [P]
+    'Chayote':       (31, 52),  # Aug->Dec [U]
     # Nightshades
-    "Tomato":        (40, 26),  # Oct->Jun [N][F]
-    "Eggplant":      (40, 26),  # Oct->Jun [N]
-    "Bell Pepper":   (40, 26),  # Oct->Jun [N][F]
+    'Tomato':        (40, 26),  # Oct->Jun [N][F]
+    'Eggplant':      (40, 26),  # Oct->Jun [N]
+    'Bell Pepper':   (40, 26),  # Oct->Jun [N][F]
     # Root / starchy
-    "Potato":        ( 5, 26),  # Feb->Jun [N]
-    "Sweet Potato":  (36, 52),  # Sep->Dec [N][P]
+    'Potato':        ( 5, 26),  # Feb->Jun [N]
+    'Sweet Potato':  (36, 52),  # Sep->Dec [N][P]
     # Brassicas / leafy
-    "Cabbage":       (48, 13),  # Dec->Mar [N][F]
-    "Cauliflower":   (44, 17),  # Nov->Apr [F]
-    "Spinach":       (40, 13),  # Oct->Mar [F][P]
-    "Lettuce":       (48, 13),  # Dec->Mar [N][F]
-    "Celery":        (48, 13),  # Dec->Mar [N][F]
+    'Cabbage':       (48, 13),  # Dec->Mar [N][F]
+    'Cauliflower':   (44, 17),  # Nov->Apr [F]
+    'Spinach':       (40, 13),  # Oct->Mar [F][P]
+    'Lettuce':       (48, 13),  # Dec->Mar [N][F]
+    'Celery':        (48, 13),  # Dec->Mar [N][F]
+    'Carrot':        (44, 23),  # Nov->Jun, peak Dec->May [N]
     # Herbs
-    "Coriander":     (40, 17),  # Oct->Apr [F]
-    "Parsley":       (40, 17),  # Oct->Apr [N]
-    "Rosemary":      ( 1, 52),  # year-round [U]
-    "Basil":         (14, 43),  # Apr->Oct [P]
+    'Coriander':     (40, 17),  # Oct->Apr [F]
+    'Parsley':       (40, 17),  # Oct->Apr [N]
+    'Rosemary':      ( 1, 52),  # year-round [U]
+    'Basil':         (14, 43),  # Apr->Oct [P]
     # Alliums
-    "Onion":         ( 5, 21),  # Feb->May [P][N]
-    "Garlic":        (10, 21),  # Mar->May [P]
+    'Onion':         ( 5, 21),  # Feb->May [P][N]
+    'Garlic':        (10, 21),  # Mar->May [P]
     # Tropical fruits
-    "Avocado":       (22,  8),  # Jun->Feb [U]
-    "Guava":         (31, 43),  # Aug->Oct [U]
-    "Papaya":        ( 1, 52),  # year-round [U]
-    "Pineapple":     (22, 39),  # Jun->Sep [U]
-    "Banana":        ( 1, 52),  # year-round [U]
-    "Carambola":     (22,  8),  # Jun->Feb [U]
-    "Coconut":       ( 1, 52),  # year-round [U]
+    'Avocado':       (22,  8),  # Jun->Feb [U]
+    'Guava':         (31, 43),  # Aug->Oct [U]
+    'Papaya':        ( 1, 52),  # year-round [U]
+    'Pineapple':     (22, 39),  # Jun->Sep [U]
+    'Banana':        ( 1, 52),  # year-round [U]
+    'Carambola':     (22,  8),  # Jun->Feb [U]
+    'Coconut':       ( 1, 52),  # year-round [U]
+    'Mango':         (18, 39),  # May->Sep [F][U]
     # Citrus
-    "Lemon":         (40, 21),  # Oct->May [U]
-    "Lime":          (22, 43),  # Jun->Oct [U]
-    "Grapefruit":    (40, 17),  # Oct->Apr [U][F]
-    "Citrus Fruit":  (40, 21),  # Oct->May [U]
+    'Lemon':         (40, 21),  # Oct->May [U]
+    'Lime':          (22, 43),  # Jun->Oct [U]
+    'Grapefruit':    (40, 17),  # Oct->Apr [U][F]
+    'Citrus Fruit':  (40, 21),  # Oct->May [U]
     # Stone / vine fruits
-    "Grape":         (31, 43),  # Aug->Oct [P]
-    "Peach":         (10, 21),  # Mar->May [P][F]
-    "Plum":          (14, 21),  # Apr->May [P]
+    'Grape':         (31, 43),  # Aug->Oct [P]
+    'Peach':         (10, 21),  # Mar->May [P][F]
+    'Plum':          (14, 21),  # Apr->May [P]
     # Nuts / field crops
-    "Peanut":        (31, 43),  # Aug->Oct [N]
-    "Pecan":         (40, 52),  # Oct->Dec [P]
-    "Chestnut":      (40, 52),  # Oct->Dec [P]
-    "Okra":          (18, 43),  # May->Oct [P]
-    "Sugarcane":     (40, 13),  # Oct->Mar [N]
+    'Peanut':        (31, 43),  # Aug->Oct [N]
+    'Pecan':         (40, 52),  # Oct->Dec [P]
+    'Walnut':        (40, 52),  # Oct->Dec, not FL-grown; national harvest window [P]
+    'Chestnut':      (40, 52),  # Oct->Dec [P]
+    'Okra':          (18, 43),  # May->Oct [P]
+    'Sugarcane':     (40, 13),  # Oct->Mar [N]
+    'Corn':          (40, 26),  # Oct->Jun, peak Apr->May, sweet corn [N][F]
 }
 
 
 def make_fourier_features(index, period=PERIOD, n_harmonics=N_HARMONICS):
-    """Create sine/cosine seasonality features for the given time index.
+    '''Create sine/cosine seasonality features for a time index.
 
-    Returns sin/cos terms for harmonics 1..`n_harmonics`, with shape
+    Returns sin/cos terms for harmonics 1..n_harmonics, shape
     (T, 2 * n_harmonics).
-    """
+    '''
     t = np.arange(len(index))
     cols = {}
     for k in range(1, n_harmonics + 1):
-        cols[f"sin_k{k}"] = np.sin(2 * np.pi * k * t / period)
-        cols[f"cos_k{k}"] = np.cos(2 * np.pi * k * t / period)
+        cols[f'sin_k{k}'] = np.sin(2 * np.pi * k * t / period)
+        cols[f'cos_k{k}'] = np.cos(2 * np.pi * k * t / period)
     return pd.DataFrame(cols, index=index)
 
 
 def _week_of_year(index):
-    """Return the ISO week number for each date, clipped to 1–52."""
+    '''Return the ISO week number for each date, clipped to 1-52.'''
     return np.clip(index.isocalendar().week.to_numpy(dtype=int), 1, 52)
 
 
 def _in_season_mask(week, start, end):
-    """Return a 0/1 mask for weeks that fall inside a season window.
+    '''Return a 0/1 mask for weeks that fall inside a season window.
 
     Handles seasons that wrap over the new year (start > end).
-    """
+    '''
     if start <= end:
         return ((week >= start) & (week <= end)).astype(float)
     return ((week >= start) | (week <= end)).astype(float)
 
 
 def make_season_flags(index, crops, calendar=None):
-    """Build one binary 'in-season' column per crop for Florida.
+    '''Build one binary in-season column per crop for Florida.
 
-    Column names follow the pattern `{crop}_in_season`. If a crop does not
-    appear in the calendar, it is treated as always in season (all ones).
-    """
+    Column names follow '{crop}_in_season'. If a crop is not in the
+    calendar, it is treated as always in season (all ones).
+    '''
     if calendar is None:
         calendar = FL_SEASON
     week = _week_of_year(index)
@@ -120,7 +124,7 @@ def make_season_flags(index, crops, calendar=None):
     for crop in crops:
         if crop in calendar:
             s, e = calendar[crop]
-            cols[f"{crop}_in_season"] = _in_season_mask(week, s, e)
+            cols[f'{crop}_in_season'] = _in_season_mask(week, s, e)
         else:
-            cols[f"{crop}_in_season"] = np.ones(len(index), dtype=float)
+            cols[f'{crop}_in_season'] = np.ones(len(index), dtype=float)
     return pd.DataFrame(cols, index=index)
