@@ -6,8 +6,15 @@ Attribute table: src/data/static_attributes.csv
 
 Columns:
   family        : botanical / commodity family (string)
-  season_class  : 'cool', 'warm', 'year_round'
+  season_class  : 'cool', 'warm', 'year_round' #crop’s main growing-temperature season
+  #cool: crops that grow best in cool temperatures (e.g. lettuce, spinach)
+  #warm: crops that grow best in warm temperatures (e.g. tomatoes, peppers)
+  #year_round: crops that grow year-round (e.g. citrus, avocados)
   perishability : 'high', 'medium', 'low'
+  # how quickly a crop typically loses quality after harvest:
+  # high: crops that lose quality quickly (e.g. lettuce, spinach)
+  # medium: crops that lose quality moderately (e.g. tomatoes, peppers)
+  # low: crops that lose quality slowly (e.g. citrus, avocados)
 '''
 
 import sys

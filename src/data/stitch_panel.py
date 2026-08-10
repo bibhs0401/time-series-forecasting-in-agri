@@ -1,4 +1,5 @@
-'''Build a common-scale weekly Google Trends panel for Florida crops.
+'''
+Build a common-scale weekly Google Trends panel for Florida crops.
 
 The raw data is split across groups ``g1`` through ``g15``. Each group
 contains 19 one-year downloads that begin six months apart, so neighbouring
@@ -19,41 +20,34 @@ The panel is assembled in three steps:
 3. Combine the groups into one panel. Repeated bridge crops are kept from
    their first group only, and the completed panel is normalized so its
    overall maximum is 100.
-
-Run this module with ``python -m src.data.stitch_panel``. It can also be run
-directly with ``python src/data/stitch_panel.py``.
 '''
 
 import sys
 from pathlib import Path
-
+import config
+from src.utils.io import load_group_windows, write_panel
 import numpy as np
 import pandas as pd
 
 # Make the project root importable whether run as a script or a module.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-# Box-drawing characters in the console output need UTF-8 (Windows defaults to
-# cp1252). Reconfigure stdout where the runtime supports it.
+# box-drawing characters in the console output need UTF-8
 try:
-    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding='utf-8')
 except (AttributeError, ValueError):
     pass
 
-import config
-from src.utils.io import load_group_windows, write_panel
-
-# Scale-factor estimators supported by ``_scale_factor`` (used by the
-# estimator-sensitivity check in validate_stitch.py / Gate A.3).
-ESTIMATORS = ("ratio_of_means", "median_of_ratios")
+# Scale-factor estimators supported by ``_scale_factor``
+ESTIMATORS = ('ratio_of_means', 'median_of_ratios')
 
 
 #  Phase 1: within-group stitching
 
 def _scale_factor(panel_overlap: np.ndarray,
                   incoming_overlap: np.ndarray,
-                  estimator: str = "ratio_of_means") -> float:
-    """Multiplicative scale factor aligning ``incoming`` onto ``panel``.
+                  estimator: str = 'ratio_of_means') -> float:
+    '''Multiplicative scale factor aligning ``incoming`` onto ``panel``.
 
     Pooled across all crops × weeks of the overlap so one noisy crop can't
     skew the rescaling. Two estimators are supported so the calibration can
@@ -63,28 +57,28 @@ def _scale_factor(panel_overlap: np.ndarray,
       high-volume weeks more leverage, matches the published behaviour).
     - ``median_of_ratios``: median(panel / incoming)    (robust to outliers;
       every cell counts equally regardless of volume).
-    """
+    '''
     mask = (
         np.isfinite(panel_overlap) & np.isfinite(incoming_overlap)
         & (panel_overlap > 0) & (incoming_overlap > 0)
     )
     if mask.sum() < 8:
         raise ValueError(
-            f"Only {mask.sum()} valid overlap points — cannot estimate scale."
+            f'Only {mask.sum()} valid overlap points — cannot estimate scale.'
         )
     p = panel_overlap[mask]
     q = incoming_overlap[mask]
-    if estimator == "ratio_of_means":
+    if estimator == 'ratio_of_means':
         return float(p.sum() / q.sum())
-    if estimator == "median_of_ratios":
+    if estimator == 'median_of_ratios':
         return float(np.median(p / q))
-    raise ValueError(f"Unknown estimator '{estimator}'. Use one of {ESTIMATORS}.")
+    raise ValueError(f'Unknown estimator {estimator!r}. Use one of {ESTIMATORS}.')
 
 
 # Backwards-compatible alias for the original pooled ratio-of-means helper.
 def _pooled_scale_factor(panel_overlap: np.ndarray,
                          incoming_overlap: np.ndarray) -> float:
-    return _scale_factor(panel_overlap, incoming_overlap, "ratio_of_means")
+    return _scale_factor(panel_overlap, incoming_overlap, 'ratio_of_means')
 
 
 def _seam_residuals(panel_overlap: pd.DataFrame,
@@ -94,14 +88,14 @@ def _seam_residuals(panel_overlap: pd.DataFrame,
                     seam: str,
                     factor: float,
                     n_overlap: int) -> list:
-    """Per-crop reconstruction error on a single within-group seam.
+    '''Per-crop reconstruction error on a single within-group seam.
 
     After scaling, the two adjacent windows should agree on their shared
     weeks. For each crop we report the relative disagreement
     ``(scaled_incoming - panel) / panel`` on the overlap. This is the
     held-out validation set for Phase-1 calibration (Gate A.1) and the
     lower-bound noise-floor proxy (Gate A.5).
-    """
+    '''
     records = []
     for crop in shared_cols:
         p = panel_overlap[crop].to_numpy(dtype=float)
@@ -112,25 +106,25 @@ def _seam_residuals(panel_overlap: pd.DataFrame,
         rel = (q[m] - p[m]) / p[m]
         abs_rel = np.abs(rel)
         records.append({
-            "group": group,
-            "seam": seam,
-            "crop": crop,
-            "n_overlap": int(m.sum()),
-            "factor": factor,
-            "median_abs_rel": float(np.median(abs_rel)),
-            "p90_abs_rel": float(np.quantile(abs_rel, 0.90)),
-            "mean_signed_rel": float(np.mean(rel)),
+            'group': group,
+            'seam': seam,
+            'crop': crop,
+            'n_overlap': int(m.sum()),
+            'factor': factor,
+            'median_abs_rel': float(np.median(abs_rel)),
+            'p90_abs_rel': float(np.quantile(abs_rel, 0.90)),
+            'mean_signed_rel': float(np.mean(rel)),
         })
     return records
 
 
 def stitch_windows(windows: list,
-                   estimator: str = "ratio_of_means",
-                   group: str = "",
+                   estimator: str = 'ratio_of_means',
+                   group: str = '',
                    seam_records: list = None,
                    anomalies: list = None,
                    verbose: bool = True) -> pd.DataFrame:
-    """Chain p01 → p02 → … → p19 into one long series per crop.
+    '''Chain p01 → p02 → … → p19 into one long series per crop.
 
     At each join:
       1. Identify shared dates (the ~26-week overlap).
@@ -142,20 +136,20 @@ def stitch_windows(windows: list,
     are appended to it (used by Gate A validation). If ``anomalies`` is a
     list, empty windows and un-scaled (low-overlap) joins are recorded there
     — these are silent calibration breaks that Gate A must surface.
-    """
+    '''
     result = windows[0].copy()
 
     for idx, incoming in enumerate(windows[1:], start=2):
-        seam = f"p{idx:02d}"
+        seam = f'p{idx:02d}'
         overlap_idx = result.index.intersection(incoming.index)
         shared_cols = [c for c in incoming.columns if c in result.columns]
 
         if incoming.shape[0] == 0:
             if anomalies is not None:
-                anomalies.append({"group": group, "seam": seam,
-                                  "type": "empty_window", "n_overlap": 0})
+                anomalies.append({'group': group, 'seam': seam,
+                                  'type': 'empty_window', 'n_overlap': 0})
             if verbose:
-                print(f"      {seam}: ⚠ empty window — skipped")
+                print(f'      {seam}: ⚠ empty window — skipped')
             continue
 
         if len(overlap_idx) < 4 or not shared_cols:
@@ -163,11 +157,11 @@ def stitch_windows(windows: list,
             new_dates = incoming.index.difference(result.index)
             result = pd.concat([result, incoming.loc[new_dates]]).sort_index()
             if anomalies is not None:
-                anomalies.append({"group": group, "seam": seam,
-                                  "type": "appended_raw_no_scale",
-                                  "n_overlap": int(len(overlap_idx))})
+                anomalies.append({'group': group, 'seam': seam,
+                                  'type': 'appended_raw_no_scale',
+                                  'n_overlap': int(len(overlap_idx))})
             if verbose:
-                print(f"      {seam}: ⚠ no overlap — appended raw (UNSCALED)")
+                print(f'      {seam}: ⚠ no overlap — appended raw (UNSCALED)')
             continue
 
         panel_overlap = result.loc[overlap_idx, shared_cols]
@@ -194,8 +188,8 @@ def stitch_windows(windows: list,
         result = pd.concat([result, scaled.loc[new_dates]]).sort_index()
 
         if verbose:
-            print(f"      {seam}: scale ×{factor:.4f}  "
-                  f"({len(overlap_idx)} overlap wks)")
+            print(f'      {seam}: scale ×{factor:.4f}  '
+                  f'({len(overlap_idx)} overlap wks)')
 
     return result.sort_index()
 
@@ -205,12 +199,12 @@ def stitch_windows(windows: list,
 def per_anchor_factors(ref_panel: pd.DataFrame,
                        other_panel: pd.DataFrame,
                        anchors: list) -> dict:
-    """Ratio-of-means factor for each usable anchor crop.
+    '''Ratio-of-means factor for each usable anchor crop.
 
     Returns ``{anchor: (factor, n_points)}`` for every anchor present in
     both panels with at least 4 valid shared weeks. Exposed so Gate A.2
     can test how much the cross-group level depends on the anchor choice.
-    """
+    '''
     shared_dates = ref_panel.index.intersection(other_panel.index)
     out = {}
     for anchor in anchors:
@@ -229,33 +223,33 @@ def anchor_scale_factor(ref_panel: pd.DataFrame,
                         other_panel: pd.DataFrame,
                         anchors: list,
                         verbose: bool = True) -> float:
-    """Mean of per-anchor ratio-of-means factors.
+    '''Mean of per-anchor ratio-of-means factors.
 
     Averaging one factor per anchor (rather than pooling all anchor values
     into a single ratio) prevents a high-volume crop (e.g. tomato) from
     swamping a low-volume one.
-    """
+    '''
     factors = per_anchor_factors(ref_panel, other_panel, anchors)
     if not factors:
-        raise ValueError("No valid anchor crops — cannot cross-scale.")
+        raise ValueError('No valid anchor crops — cannot cross-scale.')
     if verbose:
         for anchor, (f, n) in factors.items():
-            print(f"    anchor '{anchor}':  ×{f:.4f}  ({n} pts)")
+            print(f'    anchor {anchor!r}:  ×{f:.4f}  ({n} pts)')
     mean_f = float(np.mean([f for f, _ in factors.values()]))
     if verbose:
-        print(f"    → averaged factor:  ×{mean_f:.4f}")
+        print(f'    → averaged factor:  ×{mean_f:.4f}')
     return mean_f
 
 
-def stitch_all_groups(estimator: str = "ratio_of_means",
+def stitch_all_groups(estimator: str = 'ratio_of_means',
                       seam_records: list = None,
                       anomalies: list = None,
                       verbose: bool = True) -> dict:
-    """Phase 1 for every group → ``{group: weekly DataFrame}``."""
+    '''Phase 1 for every group → ``{group: weekly DataFrame}``.'''
     stitched = {}
     for g in config.GROUPS:
         if verbose:
-            print(f"\n  [{g}]")
+            print(f'\n  [{g}]')
         windows = load_group_windows(g)
         stitched[g] = stitch_windows(
             windows, estimator=estimator, group=g,
@@ -263,25 +257,25 @@ def stitch_all_groups(estimator: str = "ratio_of_means",
         )
         if verbose:
             panel = stitched[g]
-            print(f"    result: {panel.shape[0]} weeks, "
-                  f"{panel.index.min().date()} → {panel.index.max().date()}")
+            print(f'    result: {panel.shape[0]} weeks, '
+                  f'{panel.index.min().date()} → {panel.index.max().date()}')
     return stitched
 
 
 def cross_scale_groups(stitched: dict,
                        anchors_map: dict = None,
                        verbose: bool = True) -> dict:
-    """Phase 2: rescale every non-reference group onto the reference scale.
+    '''Phase 2: rescale every non-reference group onto the reference scale.
 
     Returns a new ``{group: DataFrame}`` dict with each group multiplied by
     its averaged anchor factor. Does not mutate the input.
-    """
+    '''
     anchors_map = anchors_map or config.GROUP_ANCHORS
     ref = stitched[config.REF_GROUP]
     out = {config.REF_GROUP: stitched[config.REF_GROUP].copy()}
     for g, anchors in anchors_map.items():
         if verbose:
-            print(f"\n  [{g} → {config.REF_GROUP}]  anchors: {anchors}")
+            print(f'\n  [{g} → {config.REF_GROUP}]  anchors: {anchors}')
         factor = anchor_scale_factor(ref, stitched[g], anchors, verbose=verbose)
         out[g] = stitched[g] * factor
     return out
@@ -291,14 +285,14 @@ def assemble_panel(stitched_scaled: dict,
                    renormalize: bool = True,
                    title_case: bool = True,
                    verbose: bool = True) -> pd.DataFrame:
-    """Phase 3: dedupe bridge crops, assemble, and (optionally) renormalize."""
+    '''Phase 3: dedupe bridge crops, assemble, and (optionally) renormalize.'''
     panel = stitched_scaled[config.REF_GROUP].copy()
 
     for g in [g for g in config.GROUPS if g != config.REF_GROUP]:
         for col in stitched_scaled[g].columns:
             if col in panel.columns:
                 if verbose and col in config.DUPLICATE_CROPS:
-                    print(f"    drop '{col}' from {g}  (kept from earlier group)")
+                    print(f'    drop {col!r} from {g}  (kept from earlier group)')
                 continue
             panel[col] = stitched_scaled[g][col]
 
@@ -309,17 +303,17 @@ def assemble_panel(stitched_scaled: dict,
 
     if title_case:
         panel.columns = [c.title() for c in panel.columns]
-    panel.index.name = "Date"
+    panel.index.name = 'Date'
     return panel
 
 
-def build_panel(estimator: str = "ratio_of_means",
+def build_panel(estimator: str = 'ratio_of_means',
                 renormalize: bool = True,
                 title_case: bool = True,
                 seam_records: list = None,
                 anomalies: list = None,
                 verbose: bool = True) -> pd.DataFrame:
-    """Run the full Phase 1→2→3 pipeline and return the assembled panel."""
+    '''Run the full Phase 1→2→3 pipeline and return the assembled panel.'''
     stitched = stitch_all_groups(estimator, seam_records, anomalies, verbose)
     scaled = cross_scale_groups(stitched, verbose=verbose)
     return assemble_panel(scaled, renormalize, title_case, verbose)
@@ -328,32 +322,32 @@ def build_panel(estimator: str = "ratio_of_means",
 #  Main
 
 def main():
-    print("\n" + "═" * 62)
-    print("  PHASE 1 — Within-group stitching")
-    print("═" * 62)
+    print('\n' + '═' * 62)
+    print('  PHASE 1 — Within-group stitching')
+    print('═' * 62)
     stitched = stitch_all_groups(verbose=True)
 
-    print("\n" + "═" * 62)
-    print("  PHASE 2 — Cross-group rescaling  (all → g1 scale)")
-    print("═" * 62)
+    print('\n' + '═' * 62)
+    print('  PHASE 2 — Cross-group rescaling  (all → g1 scale)')
+    print('═' * 62)
     scaled = cross_scale_groups(stitched, verbose=True)
 
-    print("\n" + "═" * 62)
-    print("  PHASE 3 — Deduplication and final assembly")
-    print("═" * 62)
+    print('\n' + '═' * 62)
+    print('  PHASE 3 — Deduplication and final assembly')
+    print('═' * 62)
     panel = assemble_panel(scaled, verbose=True)
 
-    print("\n  Zero / NaN fraction per crop:")
+    print('\n  Zero / NaN fraction per crop:')
     zfrac = (panel.fillna(0) <= 0).mean().sort_values()
     for crop, z in zfrac.items():
-        flag = "  ← SPARSE" if z > config.ZERO_GATE else ""
-        print(f"    {crop:<14}  {z:5.1%}{flag}")
+        flag = '  ← SPARSE' if z > config.ZERO_GATE else ''
+        print(f'    {crop:<14}  {z:5.1%}{flag}')
 
     write_panel(panel)
-    print(f"\n  ✓ Wrote {config.PANEL_CSV}")
-    print(f"    {panel.shape[0]} weeks × {panel.shape[1]} crops")
-    print(f"    Crops: {list(panel.columns)}")
+    print(f'\n  ✓ Wrote {config.PANEL_CSV}')
+    print(f'    {panel.shape[0]} weeks × {panel.shape[1]} crops')
+    print(f'    Crops: {list(panel.columns)}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
